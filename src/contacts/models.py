@@ -12,5 +12,5 @@ class Contact(Base):
     phone = Column(String)
     birthday = Column(Date)
     additional_info = Column(String, nullable=True)
-    user_id = Column(Integer, ForeignKey('users.id'))
+    owner_id = Column(Integer, ForeignKey('users.id'))
     owner = relationship("User", back_populates="contacts")
