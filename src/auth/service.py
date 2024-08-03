@@ -5,7 +5,14 @@ from src.auth import schemas, models
 from src.config import settings
 from datetime import timedelta
 from jose import JWTError, jwt
-from src.utils import verify_password, get_password_hash, create_access_token
+from src.auth.utils import (
+    verify_password,
+    get_password_hash,
+    create_access_token,
+    generate_email_verification_token,
+    send_verification_email,
+    confirm_email_verification_token
+)
 from src.logging_config import logger
 
 def authenticate_user(db: Session, email: str, password: str):
@@ -30,6 +37,11 @@ def create_user(db: Session, user: schemas.UserCreate):
         db.add(db_user)
         db.commit()
         db.refresh(db_user)
+
+        # Generate email verification token and send email
+        token = generate_email_verification_token(user.email)
+        send_verification_email(user.email, token)
+
         return db_user
     except IntegrityError as e:
         db.rollback()
@@ -71,4 +83,18 @@ def get_current_user(db: Session, token: str):
     user = db.query(models.User).filter(models.User.email == token_data.email).first()
     if user is None:
         raise credentials_exception
+    return user
+
+def verify_user(db: Session, token: str):
+    email = confirm_email_verification_token(token)
+    if not email:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid or expired token")
+
+    user = db.query(models.User).filter(models.User.email == email).first()
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+    user.is_verified = True
+    db.commit()
+    db.refresh(user)
     return user

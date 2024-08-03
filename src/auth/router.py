@@ -14,7 +14,7 @@ def login_for_access_token(db: Session = Depends(get_db), form_data: OAuth2Passw
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect username or password",
+            detail="Incorrect email or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
     access_token = service.create_access_token_for_user(user)
@@ -24,6 +24,11 @@ def login_for_access_token(db: Session = Depends(get_db), form_data: OAuth2Passw
 def register_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
     db_user = service.create_user(db, user)
     return db_user
+
+@router.get("/verify/{token}", response_model=schemas.User)
+def verify_user(token: str, db: Session = Depends(get_db)):
+    user = service.verify_user(db, token)
+    return user
 
 def get_current_user(db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
     return service.get_current_user(db, token)
