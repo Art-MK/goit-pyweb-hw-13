@@ -1,8 +1,9 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, File, UploadFile
 from sqlalchemy.orm import Session
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
-from src.auth import schemas, service
+from src.auth import schemas, service, models
 from src.database import get_db
+from src.utils.cloudinary import upload_avatar
 
 router = APIRouter()
 
@@ -37,3 +38,18 @@ def get_current_user(db: Session = Depends(get_db), token: str = Depends(oauth2_
 def get_current_user(db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
     user = service.get_current_user(db, token)
     return user
+
+@router.post("/upload-avatar", response_model=schemas.User)
+async def upload_user_avatar(
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    if file.content_type not in ["image/jpeg", "image/png"]:
+        raise HTTPException(status_code=400, detail="Invalid file type")
+
+    avatar_url = upload_avatar(file.file)
+    current_user.avatar_url = avatar_url
+    db.commit()
+    db.refresh(current_user)
+    return current_user

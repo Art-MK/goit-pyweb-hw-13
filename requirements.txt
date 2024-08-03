@@ -11,3 +11,4 @@ python-multipart
 itsdangerous
 pydantic-settings
 slowapi
+cloudinary
