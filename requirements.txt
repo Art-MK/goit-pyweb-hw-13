@@ -9,3 +9,5 @@ python-dotenv
 pydantic[email]
 python-multipart
 itsdangerous
+pydantic-settings
+slowapi
