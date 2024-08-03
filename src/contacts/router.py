@@ -5,10 +5,11 @@ from src.database import get_db
 from src.contacts import schemas, service
 from src.auth.router import get_current_user
 from src.auth.models import User
+from fastapi_limiter.depends import RateLimiter
 
 router = APIRouter()
 
-@router.post("/", response_model=schemas.Contact, status_code=status.HTTP_201_CREATED)
+@router.post("/", response_model=schemas.Contact, status_code=status.HTTP_201_CREATED, dependencies=[Depends(RateLimiter(times=5, seconds=60))])
 def create_contact(contact: schemas.ContactCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     return service.create_contact(db=db, contact=contact, user_id=current_user.id)
 

@@ -1,11 +1,15 @@
 from src.logging_config import logger
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi_limiter import FastAPILimiter
+from fastapi_limiter.depends import RateLimiter
+from redis import asyncio as aioredis
 from src.database import engine, Base
 from src.auth import models as auth_models
 from src.auth.router import router as auth_router
 from src.contacts.router import router as contacts_router
 from src.healthcheck.router import router as healthcheck_router
+from src.config import settings
 
 logger.info("Starting application setup")
 
@@ -23,6 +27,11 @@ app.add_middleware(
     allow_methods=["*"],  # Allow all methods (GET, POST, PUT, DELETE, etc.)
     allow_headers=["*"],  # Allow all headers
 )
+
+@app.on_event("startup")
+async def startup():
+    redis = aioredis.from_url(settings.REDIS_URL, encoding="utf-8", decode_responses=True)
+    await FastAPILimiter.init(redis)
 
 # Include routers
 app.include_router(auth_router, prefix="/auth", tags=["auth"])

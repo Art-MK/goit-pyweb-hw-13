@@ -10,5 +10,5 @@ pydantic[email]
 python-multipart
 itsdangerous
 pydantic-settings
-slowapi
+fastapi-limiter
 cloudinary
