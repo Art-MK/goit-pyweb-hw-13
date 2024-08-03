@@ -27,3 +27,8 @@ def register_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
 
 def get_current_user(db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
     return service.get_current_user(db, token)
+
+@router.get("/me", response_model=schemas.User)
+def get_current_user(db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
+    user = service.get_current_user(db, token)
+    return user

@@ -8,8 +8,8 @@ from jose import JWTError, jwt
 from src.utils import verify_password, get_password_hash, create_access_token
 from src.logging_config import logger
 
-def authenticate_user(db: Session, username: str, password: str):
-    user = db.query(models.User).filter(models.User.username == username).first()
+def authenticate_user(db: Session, email: str, password: str):
+    user = db.query(models.User).filter(models.User.email == email).first()
     if not user or not verify_password(password, user.hashed_password):
         return False
     return user
@@ -23,9 +23,9 @@ def create_user(db: Session, user: schemas.UserCreate):
         )
     try:
         db_user = models.User(
-            username=user.username,
             email=user.email,
-            hashed_password=get_password_hash(user.password)
+            hashed_password=get_password_hash(user.password),
+            username=user.username
         )
         db.add(db_user)
         db.commit()
@@ -49,7 +49,7 @@ def create_user(db: Session, user: schemas.UserCreate):
 def create_access_token_for_user(user: models.User):
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
-        data={"sub": user.username}, expires_delta=access_token_expires
+        data={"sub": user.email}, expires_delta=access_token_expires
     )
     return access_token
 
@@ -61,13 +61,14 @@ def get_current_user(db: Session, token: str):
     )
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        email: str = payload.get("sub")
         username: str = payload.get("sub")
-        if username is None:
+        if email is None:
             raise credentials_exception
-        token_data = schemas.TokenData(username=username)
+        token_data = schemas.TokenData(email=email, username=username)
     except JWTError:
         raise credentials_exception
-    user = db.query(models.User).filter(models.User.username == token_data.username).first()
+    user = db.query(models.User).filter(models.User.email == token_data.email).first()
     if user is None:
         raise credentials_exception
     return user
